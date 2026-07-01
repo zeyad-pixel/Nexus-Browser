@@ -1,0 +1,1 @@
+from core.shields_manager import ShieldInterceptor

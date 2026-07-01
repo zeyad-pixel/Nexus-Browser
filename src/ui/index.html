@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nexus Browser - New Tab</title>
+  <style>
+    :root{
+      --bg:#05070d;
+      --panel:#0b1020;
+      --panel-2:#0f1730;
+      --border:rgba(0,255,170,.16);
+      --text:#e8eefc;
+      --muted:#8fa3c8;
+      --cyan:#00d4ff;
+      --green:#00ff99;
+      --shadow:0 20px 60px rgba(0,0,0,.45);
+      --radius:22px;
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(0,212,255,.12), transparent 28%),
+        radial-gradient(circle at top right, rgba(0,255,153,.10), transparent 26%),
+        linear-gradient(180deg, #03050a 0%, #05070d 45%, #060914 100%);
+      overflow-x:hidden;
+    }
+
+    .scanlines{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      background:repeating-linear-gradient(
+        to bottom,
+        rgba(255,255,255,.03),
+        rgba(255,255,255,.03) 1px,
+        transparent 1px,
+        transparent 4px
+      );
+      opacity:.08;
+      mix-blend-mode:screen;
+    }
+
+    .noise{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='.28'/%3E%3C/svg%3E");
+      opacity:.04;
+    }
+
+    .wrap{
+      min-height:100%;
+      display:flex;
+      flex-direction:column;
+      padding:24px;
+      position:relative;
+      z-index:1;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      width:min(1280px, 100%);
+      margin:0 auto;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      user-select:none;
+    }
+
+    .logo{
+      width:52px;
+      height:52px;
+      border-radius:16px;
+      background:linear-gradient(135deg, rgba(0,212,255,.18), rgba(0,255,153,.18));
+      border:1px solid var(--border);
+      box-shadow:var(--shadow);
+      display:grid;
+      place-items:center;
+      backdrop-filter:blur(14px);
+    }
+
+    .brand h1{
+      font-size:28px;
+      line-height:1;
+      letter-spacing:.3px;
+      font-weight:700;
+    }
+
+    .brand p{
+      margin-top:4px;
+      color:var(--muted);
+      font-size:13px;
+      letter-spacing:.2px;
+    }
+
+    .status{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:12px 16px;
+      border-radius:999px;
+      background:rgba(11,16,32,.72);
+      border:1px solid var(--border);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(16px);
+      color:var(--text);
+      font-size:13px;
+      white-space:nowrap;
+    }
+
+    .dot{
+      width:10px;
+      height:10px;
+      border-radius:999px;
+      background:var(--green);
+      box-shadow:0 0 16px rgba(0,255,153,.8);
+    }
+
+    .hero{
+      width:min(1280px, 100%);
+      margin:0 auto;
+      padding:44px 0 18px;
+      flex:1;
+      display:grid;
+      grid-template-columns: 1.6fr .9fr;
+      gap:24px;
+      align-items:start;
+    }
+
+    .panel{
+      background:linear-gradient(180deg, rgba(15,23,48,.88), rgba(7,11,22,.88));
+      border:1px solid rgba(0,212,255,.13);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      backdrop-filter:blur(18px);
+    }
+
+    .search-panel{
+      padding:28px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .search-panel::before{
+      content:"";
+      position:absolute;
+      inset:-1px;
+      background:radial-gradient(circle at top right, rgba(0,212,255,.12), transparent 28%);
+      pointer-events:none;
+    }
+
+    .headline{
+      position:relative;
+      z-index:1;
+      margin-bottom:22px;
+    }
+
+    .headline h2{
+      font-size:44px;
+      line-height:1;
+      margin-bottom:10px;
+      font-weight:800;
+      letter-spacing:.2px;
+    }
+
+    .headline h2 span{
+      color:var(--cyan);
+      text-shadow:0 0 18px rgba(0,212,255,.4);
+    }
+
+    .headline .sub{
+      color:var(--muted);
+      font-size:15px;
+      line-height:1.7;
+      max-width:64ch;
+    }
+
+    .search-box{
+      position:relative;
+      z-index:1;
+      margin-top:22px;
+    }
+
+    .search-input{
+      width:100%;
+      height:68px;
+      border:none;
+      outline:none;
+      border-radius:18px;
+      background:rgba(4,8,18,.92);
+      color:var(--text);
+      font-size:16px;
+      padding:0 160px 0 58px;
+      border:1px solid rgba(0,255,153,.14);
+      box-shadow: inset 0 0 0 1px rgba(0,212,255,.03);
+      transition:.2s ease;
+    }
+
+    .search-input::placeholder{
+      color:#7f92b7;
+    }
+
+    .search-input:focus{
+      border-color:rgba(0,212,255,.38);
+      box-shadow:0 0 0 4px rgba(0,212,255,.08), inset 0 0 0 1px rgba(0,255,153,.06);
+    }
+
+    .search-icon{
+      position:absolute;
+      left:20px;
+      top:50%;
+      transform:translateY(-50%);
+      width:20px;
+      height:20px;
+      opacity:.9;
+    }
+
+    .search-btn{
+      position:absolute;
+      right:10px;
+      top:50%;
+      transform:translateY(-50%);
+      height:48px;
+      padding:0 18px;
+      border:none;
+      border-radius:14px;
+      background:linear-gradient(135deg, rgba(0,212,255,.18), rgba(0,255,153,.18));
+      color:var(--text);
+      font-weight:700;
+      cursor:pointer;
+      border:1px solid rgba(0,255,153,.18);
+      transition:.2s ease;
+    }
+
+    .search-btn:hover{
+      transform:translateY(-50%) scale(1.02);
+      box-shadow:0 0 26px rgba(0,212,255,.12);
+    }
+
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:16px;
+      position:relative;
+      z-index:1;
+    }
+
+    .chip{
+      border:none;
+      border-radius:999px;
+      padding:10px 14px;
+      background:rgba(255,255,255,.03);
+      color:var(--text);
+      border:1px solid rgba(143,163,200,.14);
+      cursor:pointer;
+      transition:.2s ease;
+      font-size:13px;
+    }
+
+    .chip:hover{
+      background:rgba(0,212,255,.08);
+      border-color:rgba(0,212,255,.24);
+    }
+
+    .side{
+      display:grid;
+      gap:16px;
+    }
+
+    .card{
+      padding:20px;
+    }
+
+    .card h3{
+      font-size:14px;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      color:var(--muted);
+      margin-bottom:14px;
+    }
+
+    .security-grid{
+      display:grid;
+      gap:10px;
+    }
+
+    .secure-item{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px 15px;
+      border-radius:16px;
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(143,163,200,.11);
+      font-size:14px;
+    }
+
+    .secure-item strong{
+      font-weight:600;
+    }
+
+    .ok{
+      color:var(--green);
+      text-shadow:0 0 12px rgba(0,255,153,.2);
+    }
+
+    .tools{
+      display:grid;
+      grid-template-columns:repeat(2, 1fr);
+      gap:12px;
+    }
+
+    .tool{
+      text-decoration:none;
+      color:var(--text);
+      padding:14px 12px;
+      border-radius:16px;
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(0,212,255,.12);
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-height:84px;
+      transition:.2s ease;
+    }
+
+    .tool:hover{
+      transform:translateY(-2px);
+      border-color:rgba(0,255,153,.26);
+      background:rgba(0,212,255,.06);
+    }
+
+    .tool span:first-child{
+      font-size:18px;
+    }
+
+    .tool span:last-child{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.4;
+    }
+
+    .shortcuts{
+      width:min(1280px, 100%);
+      margin:0 auto;
+      padding:0 0 10px;
+    }
+
+    .section-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin:10px 0 16px;
+    }
+
+    .section-title h3{
+      font-size:14px;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(6, minmax(0, 1fr));
+      gap:14px;
+    }
+
+    .shortcut{
+      text-decoration:none;
+      color:var(--text);
+      background:rgba(11,16,32,.78);
+      border:1px solid rgba(143,163,200,.12);
+      border-radius:18px;
+      padding:18px 14px;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+      gap:12px;
+      min-height:112px;
+      box-shadow:var(--shadow);
+      transition:.2s ease;
+    }
+
+    .shortcut:hover{
+      transform:translateY(-2px);
+      border-color:rgba(0,212,255,.22);
+      background:rgba(15,23,48,.92);
+    }
+
+    .shortcut .ic{
+      width:44px;
+      height:44px;
+      border-radius:14px;
+      background:linear-gradient(135deg, rgba(0,212,255,.16), rgba(0,255,153,.14));
+      border:1px solid rgba(0,255,153,.16);
+      display:grid;
+      place-items:center;
+      font-size:20px;
+    }
+
+    .shortcut .name{
+      font-size:14px;
+      font-weight:600;
+    }
+
+    .shortcut .desc{
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.4;
+    }
+
+    .footer{
+      width:min(1280px, 100%);
+      margin:12px auto 0;
+      padding:0 0 8px;
+      color:var(--muted);
+      font-size:12px;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .clock{
+      font-variant-numeric:tabular-nums;
+      color:#cfe7ff;
+    }
+
+    @media (max-width: 1120px){
+      .hero{
+        grid-template-columns:1fr;
+      }
+      .grid{
+        grid-template-columns:repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 720px){
+      .wrap{padding:16px}
+      .topbar{
+        align-items:flex-start;
+        flex-direction:column;
+      }
+      .brand h1{font-size:24px}
+      .headline h2{font-size:34px}
+      .search-panel{padding:20px}
+      .search-input{
+        height:60px;
+        padding-right:108px;
+        font-size:15px;
+      }
+      .search-btn{
+        height:42px;
+        padding:0 14px;
+      }
+      .grid{
+        grid-template-columns:repeat(2, minmax(0, 1fr));
+      }
+      .tools{
+        grid-template-columns:1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="scanlines"></div>
+  <div class="noise"></div>
+
+  <div class="wrap">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2 4 5.5v5.2c0 4.8 3.2 9.2 8 11.3 4.8-2.1 8-6.5 8-11.3V5.5L12 2Z" stroke="#00d4ff" stroke-width="1.4"/>
+            <path d="M8.5 12.1 11 14.6 15.8 9" stroke="#00ff99" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Nexus Browser</h1>
+          <p>Secure • Private • Fast • Cyber Ready</p>
+        </div>
+      </div>
+
+      <div class="status">
+        <span class="dot"></span>
+        <span>Secure Connection Enabled</span>
+        <span id="clock" class="clock">00:00:00</span>
+      </div>
+    </header>
+
+    <main class="hero">
+      <section class="panel search-panel">
+        <div class="headline">
+          <h2>Welcome to <span>Nexus</span></h2>
+          <div class="sub">
+            Search the web securely, open a URL directly, or jump to your favorite tools.
+            This page is designed with a dark cyber-security look for a clean new tab experience.
+          </div>
+        </div>
+
+        <form class="search-box" id="searchForm">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M15.5 14h-.79l-.28-.27A6.5 6.5 0 1 0 14 15.5l.27.28v.79L20 21.49 21.49 20l-5.99-6ZM10 15a5 5 0 1 1 0-10 5 5 0 0 1 0 10Z" fill="#8fa3c8"/>
+          </svg>
+          <input
+            id="searchInput"
+            class="search-input"
+            type="text"
+            placeholder="Search securely or enter address"
+            autocomplete="off"
+          />
+          <button class="search-btn" type="submit">Search</button>
+        </form>
+
+        <div class="chips">
+          <button class="chip" data-query="https://www.google.com">Google</button>
+          <button class="chip" data-query="https://www.github.com">GitHub</button>
+          <button class="chip" data-query="https://www.youtube.com">YouTube</button>
+          <button class="chip" data-query="https://chatgpt.com">ChatGPT</button>
+          <button class="chip" data-query="https://perplexity.ai">Perplexity</button>
+          <button class="chip" data-query="https://mail.google.com">Gmail</button>
+        </div>
+      </section>
+
+      <aside class="side">
+        <section class="panel card">
+          <h3>Security Center</h3>
+          <div class="security-grid">
+            <div class="secure-item"><strong>HTTPS Protection</strong><span class="ok">ON</span></div>
+            <div class="secure-item"><strong>Tracker Blocking</strong><span class="ok">ON</span></div>
+            <div class="secure-item"><strong>DNS over HTTPS</strong><span class="ok">ON</span></div>
+            <div class="secure-item"><strong>Incognito Ready</strong><span class="ok">AVAILABLE</span></div>
+          </div>
+        </section>
+
+        <section class="panel card">
+          <h3>Quick Tools</h3>
+          <div class="tools">
+            <a class="tool" href="#" onclick="return false;">
+              <span>🛡️</span>
+              <span>Security Dashboard</span>
+            </a>
+            <a class="tool" href="#" onclick="return false;">
+              <span>🔍</span>
+              <span>DNS Lookup</span>
+            </a>
+            <a class="tool" href="#" onclick="return false;">
+              <span>📜</span>
+              <span>Certificates</span>
+            </a>
+            <a class="tool" href="#" onclick="return false;">
+              <span>🕵️</span>
+              <span>User-Agent Switcher</span>
+            </a>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <section class="shortcuts">
+      <div class="section-title">
+        <h3>Shortcuts</h3>
+      </div>
+
+      <div class="grid">
+        <a class="shortcut" href="https://www.google.com">
+          <div class="ic">G</div>
+          <div class="name">Google</div>
+          <div class="desc">Search the web fast</div>
+        </a>
+
+        <a class="shortcut" href="https://www.youtube.com">
+          <div class="ic">▶</div>
+          <div class="name">YouTube</div>
+          <div class="desc">Watch videos instantly</div>
+        </a>
+
+        <a class="shortcut" href="https://www.github.com">
+          <div class="ic">{"</>"}</div>
+          <div class="name">GitHub</div>
+          <div class="desc">Code and repositories</div>
+        </a>
+
+        <a class="shortcut" href="https://mail.google.com">
+          <div class="ic">✉</div>
+          <div class="name">Gmail</div>
+          <div class="desc">Open your inbox</div>
+        </a>
+
+        <a class="shortcut" href="https://discord.com">
+          <div class="ic">☍</div>
+          <div class="name">Discord</div>
+          <div class="desc">Chat with your community</div>
+        </a>
+
+        <a class="shortcut" href="https://chatgpt.com">
+          <div class="ic">AI</div>
+          <div class="name">ChatGPT</div>
+          <div class="desc">AI assistant access</div>
+        </a>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div>Nexus Browser New Tab</div>
+      <div>Cyber Security Theme • Dark UI</div>
+    </footer>
+  </div>
+
+  <script>
+    const searchForm = document.getElementById("searchForm");
+    const searchInput = document.getElementById("searchInput");
+    const clock = document.getElementById("clock");
+
+    function updateClock() {
+      const now = new Date();
+      clock.textContent = now.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+      });
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    function isLikelyUrl(text) {
+      return /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/\S*)?$/i.test(text) || text.includes(".");
+    }
+
+    function go(query) {
+      const q = query.trim();
+      if (!q) return;
+
+      if (isLikelyUrl(q)) {
+        const url = q.startsWith("http://") || q.startsWith("https://") ? q : "https://" + q;
+        window.location.href = url;
+      } else {
+        window.location.href = "https://www.google.com/search?q=" + encodeURIComponent(q);
+      }
+    }
+
+    searchForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      go(searchInput.value);
+    });
+
+    document.querySelectorAll(".chip").forEach(btn => {
+      btn.addEventListener("click", () => {
+        go(btn.dataset.query);
+      });
+    });
+
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") searchInput.value = "";
+    });
+  </script>
+</body>
+</html>
